@@ -64,7 +64,7 @@ public class CryptoRestTest {
 
         MXDeviceInfo bobDevice = new MXDeviceInfo("dev1");
         bobDevice.userId = bobSession.getMyUserId();
-        bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
+        bobDevice.algorithms = Arrays.asList(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_OLM());
 
         Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
