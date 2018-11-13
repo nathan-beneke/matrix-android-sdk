@@ -276,7 +276,7 @@ public class CryptoTest {
 
         // Continue testing other methods
         Assert.assertNotNull(bobSession.getCrypto().deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                aliceSession.getMyUserId(), CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_OLM()));
+                aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM));
         Assert.assertTrue(aliceDeviceFromBobPOV.isUnknown());
 
         CountDownLatch lock3a = new CountDownLatch(1);
@@ -373,7 +373,7 @@ public class CryptoTest {
 
         MXDeviceInfo aliceDeviceFromBobPOV2 = bobSession2.getCrypto()
                 .deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                        aliceSession.getMyUserId(), CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_OLM());
+                        aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
 
         Assert.assertNotNull(aliceDeviceFromBobPOV2);
         Assert.assertEquals(aliceDeviceFromBobPOV2.fingerprint(), aliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key());
@@ -394,7 +394,7 @@ public class CryptoTest {
         Assert.assertTrue(results.containsKey("downloadKeys2"));
 
         MXDeviceInfo aliceDeviceFromBobPOV3 = bobSession2.getCrypto().deviceWithIdentityKey(aliceSession.getCrypto().getOlmDevice().getDeviceCurve25519Key(),
-                aliceSession.getMyUserId(), CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_OLM());
+                aliceSession.getMyUserId(), CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
 
         Assert.assertNotNull(aliceDeviceFromBobPOV3);
         Assert.assertEquals(aliceDeviceFromBobPOV3.fingerprint(), aliceSession.getCrypto().getOlmDevice().getDeviceEd25519Key());
@@ -608,7 +608,7 @@ public class CryptoTest {
         Assert.assertFalse(room.isEncrypted());
 
         CountDownLatch lock2 = new CountDownLatch(1);
-        room.enableEncryptionWithAlgorithm(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_MEGOLM(), new TestApiCallback<Void>(lock2) {
+        room.enableEncryptionWithAlgorithm(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock2) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
@@ -2563,7 +2563,7 @@ public class CryptoTest {
         Room roomFromAlicePOV = aliceSession.getDataHandler().getRoom(aliceRoomId);
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_MEGOLM(), new TestApiCallback<Void>(lock1) {
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock1) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
@@ -3071,7 +3071,7 @@ public class CryptoTest {
         bobSession2.getCrypto().setWarnOnUnknownDevices(false);
 
         CountDownLatch lock3 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_MEGOLM(), new TestApiCallback<Void>(lock3) {
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock3) {
             @Override
             public void onSuccess(Void info) {
                 results.put("enableEncryptionWithAlgorithm", "enableEncryptionWithAlgorithm");
@@ -3168,7 +3168,7 @@ public class CryptoTest {
 
         Room roomFromAlicePOV = aliceSession2.getDataHandler().getRoom(aliceRoomId2[0]);
         CountDownLatch lock4 = new CountDownLatch(1);
-        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_MEGOLM(), new TestApiCallback<Void>(lock4) {
+        roomFromAlicePOV.enableEncryptionWithAlgorithm(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM, new TestApiCallback<Void>(lock4) {
             @Override
             public void onSuccess(Void info) {
                 results.put("lock4", "lock4");
@@ -3356,7 +3356,7 @@ public class CryptoTest {
         Assert.assertNotNull(eventWireContent);
 
         Assert.assertNull(eventWireContent.get("body"));
-        Assert.assertEquals(CryptoConstants.INSTANCE.getMXCRYPTO_ALGORITHM_MEGOLM(), eventWireContent.get("algorithm").getAsString());
+        Assert.assertEquals(CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM, eventWireContent.get("algorithm").getAsString());
 
         Assert.assertNotNull(eventWireContent.get("ciphertext"));
         Assert.assertNotNull(eventWireContent.get("session_id"));
