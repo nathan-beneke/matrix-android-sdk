@@ -5,13 +5,14 @@ Features:
  -
 
 Improvements:
- -
+ - Upgrade olm-sdk.aar from version 2.3.0 to version 3.0.0
+ - Implement the backup of the room keys (vector-im/riot-android#2642)
 
 Bugfix:
  -
 
 API Change:
- -
+ - MXCrypto: importRoomKeys methods now return number of imported keys and number of total keys in the Callback.
 
 Translations:
  -

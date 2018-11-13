@@ -860,6 +860,34 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
     }
 
+    /**
+     * Nearly identical to storeInboundGroupSession, but just to update internal field.
+     * Store has to be ready, and there is no lock on mInboundGroupSessionsLock
+     */
+    private void updateInboundGroupSession(final MXOlmInboundGroupSession2 session) {
+        String sessionIdentifier = null;
+
+        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
+            try {
+                sessionIdentifier = session.mSession.sessionIdentifier();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## updateInboundGroupSession() : sessionIdentifier failed " + e.getMessage(), e);
+            }
+        }
+
+        if (null != sessionIdentifier) {
+            Log.d(LOG_TAG, "## updateInboundGroupSession() : update session " + sessionIdentifier);
+
+            File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
+
+            if (!senderKeyFolder.exists()) {
+                senderKeyFolder.mkdir();
+            }
+
+            storeObject(session, senderKeyFolder, encodeFilename(sessionIdentifier), "updateInboundGroupSession - in background");
+        }
+    }
+
     @Override
     public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey) {
         if (!mIsReady) {
@@ -902,6 +930,117 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         }
 
         return inboundGroupSessions;
+    }
+
+    @Override
+    public void resetBackupMarkers() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## resetBackupMarkers() : the store is not ready");
+            return;
+        }
+
+        synchronized (mInboundGroupSessionsLock) {
+            for (String senderKey : mInboundGroupSessions.keySet()) {
+                for (String sessionId : mInboundGroupSessions.get(senderKey).keySet()) {
+                    MXOlmInboundGroupSession2 mxOlmInboundGroupSession2 = mInboundGroupSessions.get(senderKey).get(sessionId);
+                    if (mxOlmInboundGroupSession2.mIsBackedUp) {
+                        // Reset
+                        mxOlmInboundGroupSession2.mIsBackedUp = false;
+                        // And store
+                        updateInboundGroupSession(mxOlmInboundGroupSession2);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## markBackupDoneForInboundGroupSessionWithId() : the store is not ready");
+            return;
+        }
+
+        synchronized (mInboundGroupSessionsLock) {
+            Map<String, MXOlmInboundGroupSession2> mxOlmInboundGroupSession2Map = mInboundGroupSessions.get(senderKey);
+
+            if (mxOlmInboundGroupSession2Map != null) {
+                MXOlmInboundGroupSession2 mxOlmInboundGroupSession2 = mxOlmInboundGroupSession2Map.get(sessionId);
+
+                if (mxOlmInboundGroupSession2 != null) {
+                    // Mark backup done
+                    mxOlmInboundGroupSession2.mIsBackedUp = true;
+
+                    // And serialize
+                    updateInboundGroupSession(mxOlmInboundGroupSession2);
+                } else {
+                    Log.w(LOG_TAG, "## markBackupDoneForInboundGroupSessionWithId() : session not found");
+                }
+            } else {
+                Log.w(LOG_TAG, "## markBackupDoneForInboundGroupSessionWithId() : sender not found");
+            }
+        }
+    }
+
+    @Override
+    public List<MXOlmInboundGroupSession2> inboundGroupSessionsToBackup(int limit) {
+        List<MXOlmInboundGroupSession2> result = new ArrayList<>();
+
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## markBackupDoneForInboundGroupSessionWithId() : the store is not ready");
+            return result;
+        }
+
+        synchronized (mInboundGroupSessionsLock) {
+            for (String senderKey : mInboundGroupSessions.keySet()) {
+                for (String sessionId : mInboundGroupSessions.get(senderKey).keySet()) {
+                    MXOlmInboundGroupSession2 mxOlmInboundGroupSession2 = mInboundGroupSessions.get(senderKey).get(sessionId);
+                    if (!mxOlmInboundGroupSession2.mIsBackedUp) {
+                        // Add it to the list
+                        result.add(mxOlmInboundGroupSession2);
+
+                        if (result.size() >= limit) {
+                            break;
+                        }
+                    }
+                }
+
+                if (result.size() >= limit) {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    public int inboundGroupSessionsCount(boolean onlyBackedUp) {
+        int result = 0;
+
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## markBackupDoneForInboundGroupSessionWithId() : the store is not ready");
+            return result;
+        }
+
+        synchronized (mInboundGroupSessionsLock) {
+            for (String senderKey : mInboundGroupSessions.keySet()) {
+                if (onlyBackedUp) {
+                    // Count only backed up inbound group session
+                    for (String sessionId : mInboundGroupSessions.get(senderKey).keySet()) {
+                        MXOlmInboundGroupSession2 mxOlmInboundGroupSession2 = mInboundGroupSessions.get(senderKey).get(sessionId);
+                        if (mxOlmInboundGroupSession2.mIsBackedUp) {
+                            result++;
+                        }
+                    }
+                } else {
+                    // Count all
+                    result += mInboundGroupSessions.get(senderKey).size();
+                }
+            }
+        }
+
+        return result;
     }
 
     @Override

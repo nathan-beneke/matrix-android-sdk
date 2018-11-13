@@ -191,6 +191,39 @@ public interface IMXCryptoStore {
      */
     void removeInboundGroupSession(String sessionId, String senderKey);
 
+    /* ==========================================================================================
+     * Keys backup
+     * ========================================================================================== */
+
+    /**
+     * Mark all inbound group sessions as not backed up.
+     */
+    void resetBackupMarkers();
+
+    /**
+     * Mark an inbound group session as backed up on the user homeserver.
+     *
+     * @param sessionId the session identifier.
+     * @param senderKey the base64-encoded curve25519 key of the sender.
+     */
+    void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey);
+
+    /**
+     * Retrieve inbound group sessions that are not yet backed up.
+     *
+     * @param limit the maximum number of sessions to return.
+     * @return an array of non backed up inbound group sessions.
+     */
+    List<MXOlmInboundGroupSession2> inboundGroupSessionsToBackup(int limit);
+
+    /**
+     * Number of stored inbound group sessions.
+     *
+     * @param onlyBackedUp if true, count only session marked as backed up.
+     * @return a count.
+     */
+    int inboundGroupSessionsCount(boolean onlyBackedUp);
+
     /**
      * Set the global override for whether the client should ever send encrypted
      * messages to unverified devices.

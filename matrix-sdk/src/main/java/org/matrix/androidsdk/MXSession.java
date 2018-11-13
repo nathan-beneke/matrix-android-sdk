@@ -63,6 +63,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
+import org.matrix.androidsdk.rest.client.RoomKeysRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
@@ -141,6 +142,7 @@ public class MXSession {
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
     private final FilterRestClient mFilterRestClient;
+    private final RoomKeysRestClient mRoomKeysRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -209,6 +211,7 @@ public class MXSession {
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
         mFilterRestClient = new FilterRestClient(hsConfig);
+        mRoomKeysRestClient = new RoomKeysRestClient(hsConfig);
     }
 
     /**
@@ -445,6 +448,16 @@ public class MXSession {
     public FilterRestClient getFilterRestClient() {
         checkIfAlive();
         return mFilterRestClient;
+    }
+
+    /**
+     * Get the API client for requests to the Room Keys API.
+     *
+     * @return the Room Keys API client
+     */
+    public RoomKeysRestClient getRoomKeysRestClient() {
+        checkIfAlive();
+        return mRoomKeysRestClient;
     }
 
     /**
