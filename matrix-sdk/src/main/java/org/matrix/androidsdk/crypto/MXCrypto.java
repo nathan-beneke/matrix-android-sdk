@@ -867,6 +867,13 @@ public class MXCrypto {
                 if (device.mVerified != verificationStatus) {
                     device.mVerified = verificationStatus;
                     mCryptoStore.storeUserDevice(userId, device);
+
+                    if (userId.equals(mSession.getMyUserId())) {
+                        // If one of the user's own devices is being marked as verified / unverified,
+                        // check the key backup status, since whether or not we use this depends on
+                        // whether it has a signature from a verified device
+                        mKeysBackup.checkAndStartKeyBackup();
+                    }
                 }
 
                 if (null != callback) {

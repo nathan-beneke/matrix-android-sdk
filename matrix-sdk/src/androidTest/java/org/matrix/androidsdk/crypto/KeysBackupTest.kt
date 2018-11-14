@@ -26,6 +26,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.keysbackup.KeyBackupVersionTrust
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackupStateManager
@@ -239,7 +240,7 @@ class KeysBackupTest {
         // Check that backupAllGroupSessions returns valid data
         val keys = cryptoStore.inboundGroupSessionsCount(false)
 
-        val latch3 = CountDownLatch(1)
+        val latch = CountDownLatch(1)
 
         var lastBackedUpKeysProgress = 0
 
@@ -249,9 +250,9 @@ class KeysBackupTest {
                 lastBackedUpKeysProgress = backedUp
             }
 
-        }, TestApiCallback(latch3))
+        }, TestApiCallback(latch))
 
-        mTestHelper.await(latch3)
+        mTestHelper.await(latch)
 
         val backedUpKeys = cryptoStore.inboundGroupSessionsCount(true)
 
@@ -383,8 +384,8 @@ class KeysBackupTest {
         // Get key backup version from the home server
         var keysVersionResult: KeysVersionResult? = null
         val lock = CountDownLatch(1)
-        keysBackup.getCurrentVersion(object : TestApiCallback<KeysVersionResult>(lock) {
-            override fun onSuccess(info: KeysVersionResult) {
+        keysBackup.getCurrentVersion(object : TestApiCallback<KeysVersionResult?>(lock) {
+            override fun onSuccess(info: KeysVersionResult?) {
                 keysVersionResult = info
                 super.onSuccess(info)
             }
@@ -462,8 +463,8 @@ class KeysBackupTest {
     }
 
     /**
-     * Check backup starts automatically if there is an existing and compatible backup
-     * version on the homeserver.
+     * Check WrongBackUpVersion state
+     *
      * - Make alice back up her keys to her homeserver
      * - Create a new backup with fake data on the homeserver
      * - Make alice back up all her keys again
@@ -502,6 +503,102 @@ class KeysBackupTest {
         Assert.assertEquals(keysBackup.state, KeysBackupStateManager.KeysBackupState.WrongBackUpVersion)
         Assert.assertFalse(keysBackup.isEnabled)
 
+        cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Do an e2e backup to the homeserver
+     * - Log Alice on a new device
+     * - Post a message to have a new megolm session
+     * - Try to backup all
+     * -> It must fail
+     * - Validate the old device from the new one
+     * -> Backup should automatically enable on the new device
+     * -> It must use the same backup version
+     * - Try to backup all again
+     * -> It must success
+     */
+    @Test
+    fun testBackupAfterVerifyingADevice() {
+        // - Create a backup version
+        val context = InstrumentationRegistry.getContext()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
+
+        val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        // - Make alice back up her keys to her homeserver
+        prepareAndCreateKeyBackupData(keysBackup)
+
+        val latch = CountDownLatch(1)
+        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgress {
+            override fun onProgress(backedUp: Int, total: Int) {
+
+            }
+        }, TestApiCallback(latch))
+        mTestHelper.await(latch)
+
+        val oldDeviceId = cryptoTestData.firstSession.credentials.deviceId
+        val oldKeyBackupVersion = keysBackup.currentBackupVersion
+
+        // - Log Alice on a new device
+        val aliceSession2 = mTestHelper.logIntoAccount(cryptoTestData.firstSession.myUserId, defaultSessionParams)
+
+        // TODO Enable crypto?
+
+        // - Post a message to have a new megolm session
+        aliceSession2.crypto!!.setWarnOnUnknownDevices(false)
+
+        val room2 = aliceSession2.dataHandler.getRoom(cryptoTestData.roomId)
+
+        mTestHelper.sendTextMessage(room2, "New key", 1)
+
+        // - Try to backup all, it must fail
+        val latch2 = CountDownLatch(1)
+        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgress {
+            override fun onProgress(backedUp: Int, total: Int) {
+            }
+
+        }, object : TestApiCallback<Void?>(latch2, false) {
+            override fun onSuccess(info: Void?) {
+                Assert.fail("The backup must fail")
+                super.onSuccess(info)
+            }
+        })
+        mTestHelper.await(latch2)
+
+        Assert.assertFalse(keysBackup.isEnabled)
+
+        //  - Validate the old device from the new one
+        val latch3 = CountDownLatch(1)
+        aliceSession2.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED, oldDeviceId, aliceSession2.myUserId, TestApiCallback(latch3))
+        mTestHelper.await(latch3)
+
+        // -> Backup should automatically enable on the new device
+        val latch4 = CountDownLatch(1)
+        keysBackup.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
+            override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
+                // Check the backup completes
+                if (keysBackup.state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
+                    // Remove itself from the list of listeners
+                    keysBackup.removeListener(this)
+
+                    latch4.countDown()
+                }
+            }
+        })
+        mTestHelper.await(latch4)
+
+        // -> It must use the same backup version
+        Assert.assertEquals(oldKeyBackupVersion, aliceSession2.crypto!!.keysBackup.currentBackupVersion)
+
+        val latch5 = CountDownLatch(1)
+        aliceSession2.crypto!!.keysBackup.backupAllGroupSessions(null, TestApiCallback(latch5))
+        mTestHelper.await(latch5)
+
+        // -> It must success
+        Assert.assertTrue(aliceSession2.crypto!!.keysBackup.isEnabled)
+
+        aliceSession2.clear(context)
         cryptoTestData.clear(context)
     }
 

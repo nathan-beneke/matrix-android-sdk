@@ -465,8 +465,22 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * It can be different than mKeysBackupVersion.
      * @param callback
      */
-    fun getCurrentVersion(callback: ApiCallback<KeysVersionResult>) {
-        mRoomKeysRestClient.getKeysBackupVersion(null, callback)
+    fun getCurrentVersion(callback: ApiCallback<KeysVersionResult?>) {
+        mRoomKeysRestClient.getKeysBackupVersion(null, object : SimpleApiCallback<KeysVersionResult>(callback) {
+            override fun onSuccess(info: KeysVersionResult) {
+                callback.onSuccess(info)
+            }
+
+            override fun onMatrixError(e: MatrixError) {
+                // Workaround because the homeserver currently returns  M_NOT_FOUND when there is no key backup
+                if (e.errcode == MatrixError.NOT_FOUND) {
+                    callback.onSuccess(null)
+                } else {
+                    // Transmit the error
+                    callback.onMatrixError(e)
+                }
+            }
+        })
     }
 
     /**
@@ -476,64 +490,64 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * devices, start backing up to it.
      */
     fun checkAndStartKeyBackup() {
-        if (mKeysBackupStateManager.state != KeysBackupStateManager.KeysBackupState.Unknown) {
-            // Wrong state
-            return
-        }
-
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver
 
-        getCurrentVersion(object : ApiCallback<KeysVersionResult> {
-            override fun onSuccess(keyBackupVersion: KeysVersionResult) {
-                isKeyBackupTrusted(keyBackupVersion, object : SuccessCallback<KeyBackupVersionTrust> {
-                    override fun onSuccess(trustInfo: KeyBackupVersionTrust) {
-                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+        getCurrentVersion(object : ApiCallback<KeysVersionResult?> {
+            override fun onSuccess(keyBackupVersion: KeysVersionResult?) {
+                if (keyBackupVersion == null) {
+                    Log.d(LOG_TAG, "checkAndStartKeyBackup: Found no key backup version on the homeserver")
+                    disableKeyBackup()
+                } else {
+                    isKeyBackupTrusted(keyBackupVersion, object : SuccessCallback<KeyBackupVersionTrust> {
+                        override fun onSuccess(trustInfo: KeyBackupVersionTrust) {
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
 
-                        if (trustInfo.usable) {
-                            Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
-                            if (mKeysBackupVersion == null) {
-                                // Check the version we used at the previous app run
-                                val versionInStore = mCrypto.cryptoStore.keyBackupVersion
-                                if (versionInStore != null && versionInStore != keyBackupVersion.version) {
-                                    Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
+                            if (trustInfo.usable) {
+                                Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
+                                if (mKeysBackupVersion == null) {
+                                    // Check the version we used at the previous app run
+                                    val versionInStore = mCrypto.cryptoStore.keyBackupVersion
+                                    if (versionInStore != null && versionInStore != keyBackupVersion.version) {
+                                        Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
+                                        disableKeyBackup()
+                                    }
+
+                                    Log.d(LOG_TAG, "   -> enabling key backups")
+                                    enableKeyBackup(keyBackupVersion)
+                                } else if (mKeysBackupVersion!!.version.equals(keyBackupVersion.version)) {
+                                    Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep usint it")
+                                } else {
+                                    Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
+                                    disableKeyBackup()
+                                    enableKeyBackup(keyBackupVersion)
+                                }
+                            } else {
+                                Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
+                                if (mKeysBackupVersion == null) {
+                                    Log.d(LOG_TAG, "   -> not enabling key backup")
+                                } else {
+                                    Log.d(LOG_TAG, "   -> disabling key backup")
                                     disableKeyBackup()
                                 }
-
-                                Log.d(LOG_TAG, "   -> enabling key backups")
-                                enableKeyBackup(keyBackupVersion)
-                            } else if (mKeysBackupVersion!!.version.equals(keyBackupVersion.version)) {
-                                Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep usint it")
-                            } else {
-                                Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
-                                disableKeyBackup()
-                                enableKeyBackup(keyBackupVersion)
-                            }
-                        } else {
-                            Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
-                            if (mKeysBackupVersion == null) {
-                                Log.d(LOG_TAG, "   -> not enabling key backup")
-                            } else {
-                                Log.d(LOG_TAG, "   -> disabling key backup")
-                                disableKeyBackup()
                             }
                         }
-                    }
-                })
+                    })
+                }
             }
 
             override fun onUnexpectedError(e: java.lang.Exception?) {
-                // Stay in Unknown state
                 Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version", e)
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
 
             override fun onNetworkError(e: java.lang.Exception?) {
-                // Stay in Unknown state
                 Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version", e)
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
 
             override fun onMatrixError(e: MatrixError?) {
-                // Stay in Unknown state
                 Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version " + e?.localizedMessage)
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
         })
     }
