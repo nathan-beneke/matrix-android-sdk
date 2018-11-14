@@ -53,7 +53,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     private val mKeysBackupStateManager = KeysBackupStateManager()
 
     // The backup version being used.
-    private var mKeyBackupVersion: KeysVersionResult? = null
+    private var mKeysBackupVersion: KeysVersionResult? = null
 
     // The backup key being used.
     private var mBackupKey: OlmPkEncryption? = null
@@ -73,7 +73,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         get() = mKeysBackupStateManager.state
 
     val currentBackupVersion: String?
-        get() = mKeyBackupVersion?.version
+        get() = mKeysBackupVersion?.version
 
     fun addListener(listener: KeysBackupStateManager.KeysBackupStateListener) {
         mKeysBackupStateManager.addListener(listener)
@@ -158,7 +158,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             // If we're currently backing up to this backup... stop.
             // (We start using it automatically in createKeyBackupVersion
             // so this is symmetrical).
-            if (mKeyBackupVersion != null && version == mKeyBackupVersion!!.version) {
+            if (mKeysBackupVersion != null && version == mKeysBackupVersion!!.version) {
                 disableKeyBackup()
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
@@ -365,9 +365,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     }
                     Log.d(LOG_TAG, "restoreKeyBackup: Got " + sessionsData.size + " keys from the backup store on the homeserver")
                     // Do not trigger a backup for them if they come from the backup version we are using
-                    val backUp = version != mKeyBackupVersion!!.version
+                    val backUp = version != mKeysBackupVersion!!.version
                     if (backUp) {
-                        Log.d(LOG_TAG, "restoreKeyBackup: Those keys will be backed up to backup version: " + mKeyBackupVersion!!.version)
+                        Log.d(LOG_TAG, "restoreKeyBackup: Those keys will be backed up to backup version: " + mKeysBackupVersion!!.version)
                     }
 
                     // Import them into the crypto store
@@ -462,6 +462,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /**
      * Retrieve the current version of the backup from the home server
      *
+     * It can be different than mKeysBackupVersion.
      * @param callback
      */
     fun getCurrentVersion(callback: ApiCallback<KeysVersionResult>) {
@@ -490,7 +491,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
                         if (trustInfo.usable) {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
-                            if (mKeyBackupVersion == null) {
+                            if (mKeysBackupVersion == null) {
                                 // Check the version we used at the previous app run
                                 val versionInStore = mCrypto.cryptoStore.keyBackupVersion
                                 if (versionInStore != null && versionInStore != keyBackupVersion.version) {
@@ -500,16 +501,16 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
                                 Log.d(LOG_TAG, "   -> enabling key backups")
                                 enableKeyBackup(keyBackupVersion)
-                            } else if (mKeyBackupVersion!!.version.equals(keyBackupVersion.version)) {
+                            } else if (mKeysBackupVersion!!.version.equals(keyBackupVersion.version)) {
                                 Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep usint it")
                             } else {
-                                Log.d(LOG_TAG, "   -> disable the current version (" + mKeyBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
+                                Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
                                 disableKeyBackup()
                                 enableKeyBackup(keyBackupVersion)
                             }
                         } else {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
-                            if (mKeyBackupVersion == null) {
+                            if (mKeysBackupVersion == null) {
                                 Log.d(LOG_TAG, "   -> not enabling key backup")
                             } else {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
@@ -552,7 +553,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             val retrievedMegolmBackupAuthData = keysVersionResult.getAuthDataAsMegolmBackupAuthData()
 
             if (retrievedMegolmBackupAuthData != null) {
-                mKeyBackupVersion = keysVersionResult
+                mKeysBackupVersion = keysVersionResult
                 mCrypto.cryptoStore.keyBackupVersion = keysVersionResult.version
 
                 try {
@@ -584,7 +585,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     private fun disableKeyBackup() {
         resetBackupAllGroupSessionsObjects()
 
-        mKeyBackupVersion = null
+        mKeysBackupVersion = null
         mCrypto.cryptoStore.keyBackupVersion = null
         mBackupKey = null
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
@@ -614,7 +615,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         }
 
         // Sanity check
-        if (mBackupKey == null || mKeyBackupVersion == null) {
+        if (mBackupKey == null || mKeysBackupVersion == null) {
             return
         }
 
@@ -642,7 +643,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         }
 
         // Make the request
-        mRoomKeysRestClient.sendKeysBackup(mKeyBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
+        mRoomKeysRestClient.sendKeysBackup(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
             override fun onNetworkError(e: Exception) {
                 if (backupAllGroupSessionsObserver != null) {
                     backupAllGroupSessionsObserver!!.onNetworkError(e)
