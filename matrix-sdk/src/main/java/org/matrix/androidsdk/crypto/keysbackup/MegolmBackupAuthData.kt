@@ -33,5 +33,15 @@ class MegolmBackupAuthData {
     /**
      * Signatures of the public key.
      */
-    var signatures: MutableMap<String, Any>? = HashMap()
+    var signatures: MutableMap<String, Any>? = null
+
+    /**
+     * Same as the parent [MXJSONModel JSONDictionary] but return only
+     * data that must be signed.
+     */
+    fun signalableJSONDictionary(): Map<String, Any> {
+        return HashMap<String, Any>().apply {
+            this["public_key"] = publicKey
+        }
+    }
 }

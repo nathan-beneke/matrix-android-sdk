@@ -113,8 +113,7 @@ class RoomKeysRestClientTest {
         Assert.assertEquals(version, keysVersionResult!!.version)
         Assert.assertEquals(createKeysBackupVersionBody.algorithm, keysVersionResult!!.algorithm)
 
-        val retrievedMegolmBackupAuthData = JsonUtils.getGson(false)
-                .fromJson(keysVersionResult!!.authData, MegolmBackupAuthData::class.java)
+        val retrievedMegolmBackupAuthData = keysVersionResult!!.getAuthDataAsMegolmBackupAuthData()
 
         Assert.assertEquals(megolmBackupAuthData.publicKey, retrievedMegolmBackupAuthData.publicKey)
         Assert.assertEquals(megolmBackupAuthData.signatures, retrievedMegolmBackupAuthData.signatures)

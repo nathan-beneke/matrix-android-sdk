@@ -26,11 +26,15 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
+import org.matrix.androidsdk.crypto.keysbackup.KeyBackupVersionTrust
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackupStateManager
 import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupCreationInfo
+import org.matrix.androidsdk.rest.callback.SuccessCallback
 import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
+import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.keys.KeysVersion
+import org.matrix.androidsdk.rest.model.keys.KeysVersionResult
 import java.lang.Exception
 import java.util.concurrent.CountDownLatch
 
@@ -184,7 +188,7 @@ class KeysBackupTest {
      * - Check the backup completes
      */
     @Test
-    fun backupCreateKeyBackupVersionTest() {
+    fun backupAfterCreateKeyBackupVersionTest() {
         val context = InstrumentationRegistry.getContext()
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
@@ -357,6 +361,55 @@ class KeysBackupTest {
                 }
         )
         mTestHelper.await(latch2)
+
+        cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Create a backup version
+     * - Check the returned MXKeyBackupVersion is trusted
+     */
+    @Test
+    fun testIsKeyBackupTrusted() {
+        // - Create a backup version
+        val context = InstrumentationRegistry.getContext()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
+
+        val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        // - Do an e2e backup to the homeserver
+        val info = prepareAndCreateKeyBackupData(keysBackup)
+
+        // Get key backup version from the home server
+        var keysVersionResult: KeysVersionResult? = null
+        val lock = CountDownLatch(1)
+        keysBackup.getCurrentVersion(object : TestApiCallback<KeysVersionResult>(lock) {
+            override fun onSuccess(info: KeysVersionResult) {
+                keysVersionResult = info
+                super.onSuccess(info)
+            }
+        })
+        mTestHelper.await(lock)
+
+        Assert.assertNotNull(keysVersionResult)
+
+        // - Check the returned KeyBackupVersion is trusted
+        val latch = CountDownLatch(1)
+        keysBackup.isKeyBackupTrusted(keysVersionResult!!, object : SuccessCallback<KeyBackupVersionTrust> {
+            override fun onSuccess(info: KeyBackupVersionTrust?) {
+                Assert.assertNotNull(info)
+                Assert.assertTrue(info!!.usable)
+                Assert.assertEquals(1, info.signatures.size)
+
+                val signature = info.signatures[0]
+                Assert.assertTrue(signature.valid)
+                Assert.assertNotNull(signature.device)
+                Assert.assertEquals(signature.device!!.deviceId, cryptoTestData.firstSession.credentials.deviceId)
+
+                latch.countDown()
+            }
+        })
+        mTestHelper.await(latch)
 
         cryptoTestData.clear(context)
     }

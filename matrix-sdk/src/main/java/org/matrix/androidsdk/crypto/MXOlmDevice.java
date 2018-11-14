@@ -747,14 +747,14 @@ public class MXOlmDevice {
     /**
      * Verify an ed25519 signature on a JSON object.
      *
-     * @param key           the ed25519 key.
-     * @param JSONDictinary the JSON object which was signed.
-     * @param signature     the base64-encoded signature to be checked.
+     * @param key            the ed25519 key.
+     * @param JSONDictionary the JSON object which was signed.
+     * @param signature      the base64-encoded signature to be checked.
      * @throws Exception the exception
      */
-    public void verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws Exception {
+    public void verifySignature(String key, Map<String, Object> JSONDictionary, String signature) throws Exception {
         // Check signature on the canonical version of the JSON
-        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
+        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictionary));
     }
 
     /**

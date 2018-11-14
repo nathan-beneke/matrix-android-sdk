@@ -23,11 +23,13 @@ import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
 import org.matrix.androidsdk.crypto.MXCrypto
 import org.matrix.androidsdk.crypto.MegolmSessionData
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
 import org.matrix.androidsdk.crypto.util.computeRecoveryKey
 import org.matrix.androidsdk.crypto.util.extractCurveKeyFromRecoveryKey
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
+import org.matrix.androidsdk.rest.callback.SuccessCallback
 import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
 import org.matrix.androidsdk.rest.client.RoomKeysRestClient
 import org.matrix.androidsdk.rest.model.MatrixError
@@ -92,7 +94,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
                 val megolmBackupAuthData = MegolmBackupAuthData()
                 megolmBackupAuthData.publicKey = olmPkDecryption.generateKey()
-                megolmBackupAuthData.signatures = mCrypto.signObject(JsonUtils.getCanonicalizedJsonString(megolmBackupAuthData))
+                megolmBackupAuthData.signatures = mCrypto.signObject(JsonUtils.getCanonicalizedJsonString(megolmBackupAuthData.signalableJSONDictionary()))
 
                 val megolmBackupCreationInfo = MegolmBackupCreationInfo()
 
@@ -201,6 +203,78 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 mKeysBackupStateManager.addListener(mKeysBackupStateListener!!)
             }
         })
+    }
+
+    /**
+     * Check trust on a key backup version.
+     *
+     * @param keyBackupVersion the backup version to check.
+     * @param callback block called when the operations completes.
+     */
+    fun isKeyBackupTrusted(keyBackupVersion: KeysVersionResult,
+                           callback: SuccessCallback<KeyBackupVersionTrust>) {
+        mCrypto.decryptingThreadHandler.post {
+            val myUserId = mCrypto.myDevice.userId
+
+            val keyBackupVersionTrust = KeyBackupVersionTrust()
+            val authData = keyBackupVersion.getAuthDataAsMegolmBackupAuthData()
+
+            if (keyBackupVersion.algorithm == null
+                    || authData == null
+                    || authData.publicKey.isEmpty()
+                    || authData.signatures?.isEmpty() == true) {
+                Log.d(LOG_TAG, "isKeyBackupTrusted: Key backup is absent or missing required data")
+                mCrypto.uiHandler.post { callback.onSuccess(keyBackupVersionTrust) }
+                return@post
+            }
+
+            val mySigs: Map<String, *> = authData.signatures!![myUserId] as Map<String, *>
+            if (mySigs.isEmpty()) {
+                Log.d(LOG_TAG, "isKeyBackupTrusted: Ignoring key backup because it lacks any signatures from this user")
+                mCrypto.uiHandler.post { callback.onSuccess(keyBackupVersionTrust) }
+                return@post
+            }
+
+            val signatures = ArrayList<KeyBackupVersionTrustSignature>()
+
+            for (keyId in mySigs.keys) {
+                // XXX: is this how we're supposed to get the device id?
+                var deviceId: String? = null
+                val components = keyId.split(":")
+                if (components.size == 2) {
+                    deviceId = components[1]
+                }
+
+                var device: MXDeviceInfo? = null
+                if (deviceId != null) {
+                    device = mCrypto.cryptoStore.getUserDevice(deviceId, myUserId)
+                }
+                if (device == null) {
+                    Log.d(LOG_TAG, "isKeyBackupTrusted: Ignoring signature from unknown key $deviceId")
+                    continue
+                }
+
+                try {
+                    mCrypto.olmDevice.verifySignature(device.fingerprint(), authData.signalableJSONDictionary(), mySigs[keyId] as String)
+
+                    // The signature is valid
+                    if (device.isVerified) {
+                        keyBackupVersionTrust.usable = true
+                    }
+                } catch (e: OlmException) {
+                    Log.d(LOG_TAG, "isKeyBackupTrusted: Bad signature from device " + device.deviceId)
+                }
+
+                val signature = KeyBackupVersionTrustSignature()
+                signature.device = device
+                signature.valid = keyBackupVersionTrust.usable
+                signatures.add(signature)
+            }
+
+            keyBackupVersionTrust.signatures = signatures
+
+            mCrypto.uiHandler.post { callback.onSuccess(keyBackupVersionTrust) }
+        }
     }
 
     private fun resetBackupAllGroupSessionsObjects() {
@@ -373,19 +447,18 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         }
     }
 
-
-    /* ==========================================================================================
-     * Private
-     * ========================================================================================== */
-
     /**
      * Retrieve the current version of the backup from the home server
      *
      * @param callback
      */
-    private fun getCurrentVersion(callback: ApiCallback<KeysVersionResult>) {
+    fun getCurrentVersion(callback: ApiCallback<KeysVersionResult>) {
         mRoomKeysRestClient.getKeysBackupVersion(null, callback)
     }
+
+    /* ==========================================================================================
+     * Private
+     * ========================================================================================== */
 
     /**
      * Enable backing up of keys.
@@ -395,8 +468,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      */
     private fun enableKeyBackup(keysVersionResult: KeysVersionResult?): Boolean {
         if (keysVersionResult?.authData != null) {
-            val retrievedMegolmBackupAuthData = JsonUtils.getGson(false)
-                    .fromJson(keysVersionResult.authData, MegolmBackupAuthData::class.java)
+            val retrievedMegolmBackupAuthData = keysVersionResult.getAuthDataAsMegolmBackupAuthData()
 
             if (retrievedMegolmBackupAuthData != null) {
                 mKeyBackupVersion = keysVersionResult

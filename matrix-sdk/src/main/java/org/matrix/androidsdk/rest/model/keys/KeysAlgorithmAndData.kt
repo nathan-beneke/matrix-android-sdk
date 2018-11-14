@@ -18,6 +18,8 @@ package org.matrix.androidsdk.rest.model.keys
 
 import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
+import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
+import org.matrix.androidsdk.util.JsonUtils
 
 /**
  * <pre>
@@ -46,4 +48,10 @@ open class KeysAlgorithmAndData {
      */
     @SerializedName("auth_data")
     var authData: JsonElement? = null
+
+    /**
+     * Facility method to convert authData to a MegolmBackupAuthData object
+     */
+    fun getAuthDataAsMegolmBackupAuthData() = JsonUtils.getGson(false)
+            .fromJson(authData, MegolmBackupAuthData::class.java)
 }
