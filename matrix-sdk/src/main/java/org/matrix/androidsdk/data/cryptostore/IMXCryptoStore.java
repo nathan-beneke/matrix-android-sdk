@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
@@ -252,6 +253,19 @@ public interface IMXCryptoStore {
      * @return the room Ids list
      */
     List<String> getRoomsListBlacklistUnverifiedDevices();
+
+    /**
+     * Set the current keys backup version
+     *
+     * @param keyBackupVersion the keys backup version or null to delete it
+     */
+    void setKeyBackupVersion(@Nullable String keyBackupVersion);
+
+    /**
+     * Get the current keys backup version
+     */
+    @Nullable
+    String getKeyBackupVersion();
 
     /**
      * @return the devices statuses map

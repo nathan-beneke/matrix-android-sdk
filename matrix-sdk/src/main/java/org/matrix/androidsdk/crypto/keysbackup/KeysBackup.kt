@@ -491,6 +491,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                         if (trustInfo.usable) {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
                             if (mKeyBackupVersion == null) {
+                                // Check the version we used at the previous app run
+                                val versionInStore = mCrypto.cryptoStore.keyBackupVersion
+                                if (versionInStore != null && versionInStore != keyBackupVersion.version) {
+                                    Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
+                                    disableKeyBackup()
+                                }
+
                                 Log.d(LOG_TAG, "   -> enabling key backups")
                                 enableKeyBackup(keyBackupVersion)
                             } else if (mKeyBackupVersion!!.version.equals(keyBackupVersion.version)) {
@@ -546,6 +553,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
             if (retrievedMegolmBackupAuthData != null) {
                 mKeyBackupVersion = keysVersionResult
+                mCrypto.cryptoStore.keyBackupVersion = keysVersionResult.version
 
                 try {
                     mBackupKey = OlmPkEncryption()
@@ -577,6 +585,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         resetBackupAllGroupSessionsObjects()
 
         mKeyBackupVersion = null
+        mCrypto.cryptoStore.keyBackupVersion = null
         mBackupKey = null
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
 

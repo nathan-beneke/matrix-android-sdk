@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
@@ -1117,6 +1118,28 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         } else {
             return new ArrayList<>(mMetaData.mBlacklistUnverifiedDevicesRoomIdsList);
         }
+    }
+
+    @Override
+    public void setKeyBackupVersion(@Nullable String keyBackupVersion) {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## setKeyBackupVersion() : the store is not ready");
+            return;
+        }
+
+        mMetaData.mKeysBackupVersion = keyBackupVersion;
+        saveMetaData();
+    }
+
+    @Nullable
+    @Override
+    public String getKeyBackupVersion() {
+        if (!mIsReady) {
+            Log.e(LOG_TAG, "## setKeyBackupVersion() : the store is not ready");
+            return null;
+        }
+
+        return mMetaData.mKeysBackupVersion;
     }
 
     /**

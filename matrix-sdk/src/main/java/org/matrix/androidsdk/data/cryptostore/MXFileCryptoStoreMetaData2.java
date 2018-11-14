@@ -1,5 +1,6 @@
 /*
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +16,8 @@
  */
 
 package org.matrix.androidsdk.data.cryptostore;
+
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +45,13 @@ public class MXFileCryptoStoreMetaData2 implements java.io.Serializable {
 
     // Room ids list in which the unverified devices are blacklisted
     public List<String> mBlacklistUnverifiedDevicesRoomIdsList;
+
+    /**
+     * The backup version currently used.
+     * Null means no backup.
+     */
+    @Nullable
+    public String mKeysBackupVersion;
 
     /**
      * Default constructor
