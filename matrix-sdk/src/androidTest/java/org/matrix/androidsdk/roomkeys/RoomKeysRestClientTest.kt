@@ -23,12 +23,8 @@ import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import org.matrix.androidsdk.common.CommonTestHelper
-import org.matrix.androidsdk.common.SessionTestParams
-import org.matrix.androidsdk.common.TestApiCallback
-import org.matrix.androidsdk.common.TestConstants
+import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
-import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
 import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.keys.*
 import org.matrix.androidsdk.util.JsonUtils
@@ -41,6 +37,7 @@ import java.util.concurrent.CountDownLatch
 class RoomKeysRestClientTest {
 
     private val mTestHelper = CommonTestHelper()
+    private val mCryptoTestHelper = CryptoTestHelper(mTestHelper)
 
     @Test
     fun roomKeysTest_getKeysBackupVersion_noBackup() {
@@ -74,7 +71,7 @@ class RoomKeysRestClientTest {
         val context = InstrumentationRegistry.getContext()
         val bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, SessionTestParams.newBuilder().build())
 
-        val megolmBackupAuthData = createFakeMegolmBackupAuthData()
+        val megolmBackupAuthData = mCryptoTestHelper.createFakeMegolmBackupAuthData()
 
         val createKeysBackupVersionBody = CreateKeysBackupVersionBody()
         createKeysBackupVersionBody.algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
@@ -134,7 +131,7 @@ class RoomKeysRestClientTest {
         val context = InstrumentationRegistry.getContext()
         val bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, SessionTestParams.newBuilder().build())
 
-        val megolmBackupAuthData = createFakeMegolmBackupAuthData()
+        val megolmBackupAuthData = mCryptoTestHelper.createFakeMegolmBackupAuthData()
 
         val createKeysBackupVersionBody = CreateKeysBackupVersionBody()
         createKeysBackupVersionBody.algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
@@ -213,7 +210,7 @@ class RoomKeysRestClientTest {
         val context = InstrumentationRegistry.getContext()
         val bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, SessionTestParams.newBuilder().build())
 
-        val megolmBackupAuthData = createFakeMegolmBackupAuthData()
+        val megolmBackupAuthData = mCryptoTestHelper.createFakeMegolmBackupAuthData()
 
         val createKeysBackupVersionBody = CreateKeysBackupVersionBody()
         createKeysBackupVersionBody.algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
@@ -282,17 +279,6 @@ class RoomKeysRestClientTest {
     /* ==========================================================================================
      * Private
      * ========================================================================================== */
-
-    private fun createFakeMegolmBackupAuthData(): MegolmBackupAuthData {
-        return MegolmBackupAuthData().apply {
-            publicKey = "abcdefg"
-            signatures = HashMap<String, Any>().apply {
-                this["something"] = HashMap<String, String>().apply {
-                    this["ed25519:something"] = "hijklmnop"
-                }
-            }
-        }
-    }
 
     companion object {
         private val LOG_TAG = RoomKeysRestClientTest::class.java.simpleName

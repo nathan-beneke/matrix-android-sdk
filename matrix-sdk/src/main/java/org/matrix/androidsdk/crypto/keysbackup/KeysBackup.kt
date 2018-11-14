@@ -648,6 +648,16 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             }
 
             override fun onMatrixError(e: MatrixError) {
+                Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed. Error: " + e.localizedMessage)
+
+                if (e.errcode == MatrixError.WRONG_ROOM_KEYS_VERSION) {
+                    disableKeyBackup()
+                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
+                } else {
+                    // Come back to the ready state so that we will retry on the next received key
+                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                }
+
                 if (backupAllGroupSessionsObserver != null) {
                     backupAllGroupSessionsObserver!!.onMatrixError(e)
                 }

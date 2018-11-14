@@ -424,7 +424,6 @@ class KeysBackupTest {
     @Test
     fun testCheckAndStartKeyBackupWhenRestartingAMatrixSession() {
         // - Create a backup version
-        // - Create a backup version
         val context = InstrumentationRegistry.getContext()
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
@@ -460,6 +459,50 @@ class KeysBackupTest {
         mTestHelper.await(latch)
 
         aliceSession2.clear(context)
+    }
+
+    /**
+     * Check backup starts automatically if there is an existing and compatible backup
+     * version on the homeserver.
+     * - Make alice back up her keys to her homeserver
+     * - Create a new backup with fake data on the homeserver
+     * - Make alice back up all her keys again
+     * -> That must fail and her backup state must be disabled
+     */
+    @Test
+    fun testBackupWhenAnotherBackupWasCreated() {
+        // - Create a backup version
+        val context = InstrumentationRegistry.getContext()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
+
+        val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        Assert.assertFalse(keysBackup.isEnabled)
+
+        // - Make alice back up her keys to her homeserver
+        prepareAndCreateKeyBackupData(keysBackup)
+
+        Assert.assertTrue(keysBackup.isEnabled)
+
+        // - Create a new backup with fake data on the homeserver
+        val latch = CountDownLatch(1)
+        keysBackup.createKeyBackupVersion(mCryptoTestHelper.createFakeMegolmBackupCreationInfo(), TestApiCallback(latch))
+        mTestHelper.await(latch)
+
+        // - Make alice back up all her keys again
+        val latch2 = CountDownLatch(1)
+        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgress {
+            override fun onProgress(backedUp: Int, total: Int) {
+            }
+
+        }, TestApiCallback(latch2, false))
+        mTestHelper.await(latch)
+
+        // -> That must fail and her backup state must be disabled
+        Assert.assertEquals(keysBackup.state, KeysBackupStateManager.KeysBackupState.WrongBackUpVersion)
+        Assert.assertFalse(keysBackup.isEnabled)
+
+        cryptoTestData.clear(context)
     }
 
     /* ==========================================================================================

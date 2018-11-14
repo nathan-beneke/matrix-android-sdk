@@ -16,6 +16,7 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
+import org.matrix.androidsdk.util.Log
 import java.util.*
 
 class KeysBackupStateManager {
@@ -25,9 +26,11 @@ class KeysBackupStateManager {
     // Backup state
     var state = KeysBackupState.Unknown
         set(newState) {
+            Log.d(KeysBackup::class.simpleName, "setState: $field -> $newState")
+
             field = newState
 
-            // Notify listerners about the state change
+            // Notify listeners about the state change
             synchronized(mListeners) {
                 for (listener in mListeners) {
                     listener.onStateChange(state)
@@ -43,35 +46,37 @@ class KeysBackupStateManager {
      *                               V        deleteKeyBackupVersion (on current backup)
      *  +---------------------->  UNKNOWN  <-------------
      *  |                            |
-     *  |                            | checkAndStartKeyBackup (at startup or on new verified device)
+     *  |                            | checkAndStartKeyBackup (at startup or on new verified device or a new detected backup)
      *  |                            V
      *  |                     CHECKING BACKUP
      *  |                            |
-     *  |  Network error             |
-     *  +<---------------------------+---------> DISABLED <----------------------+
-     *  |                            |              |                            |
-     *  |                            |              | createKeyBackupVersion     |
-     *  |                            |              V                            |
-     *  |                            |           ENABLING                        |
-     *  |                            |              |                            |
-     *  |                            V              |                      error |
-     *  |                  +--->   READY   <--------+----------------------------+
-     *  |                  |         |
-     *  |                  |         | on new key
-     *  |                  |         V
-     *  |                  |    WILL BACK UP
-     *  |                  |         |
-     *  |                  |         V
-     *  |                  |     BACKING UP
-     *  | Error            |         |
-     *  +<-----------------+---------+
-    </pre> *
+     *  | Network error              |
+     *  +<----------+----------------+---------> DISABLED <----------------------+
+     *  |           |                |              |                            |
+     *  |           |                |              | createKeyBackupVersion     |
+     *  |           V                |              V                            |
+     *  +<---  WRONG VERSION         |           ENABLING                        |
+     *              ^                |              |                            |
+     *              |                V              |                      error |
+     *              |              READY   <--------+----------------------------+
+     *              |                |              |
+     *              |                | on new key   |
+     *              |                V              |
+     *              |           WILL BACK UP        |
+     *              |                |              |
+     *              |                V              |
+     *              |            BACKING UP         |
+     *              | Error          |              |
+     *              +<---------------+------------->+
+     * </pre>
      */
     enum class KeysBackupState {
-        // Backup is not enabled
+        // Need to check the current backup version on the homeserver
         Unknown,
         // Checking if backup is enabled on home server
         CheckingBackUpOnHomeserver,
+        // Backup has been stopped because a new backup version has been detected on the homeserver
+        WrongBackUpVersion,
         // Backup from this device is not enabled
         Disabled,
         // Backup is being enabled: the backup version is being created on the homeserver

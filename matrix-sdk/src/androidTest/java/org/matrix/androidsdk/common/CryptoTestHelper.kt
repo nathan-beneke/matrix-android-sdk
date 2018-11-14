@@ -21,6 +21,9 @@ import android.text.TextUtils
 import org.junit.Assert
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM
+import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
+import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupCreationInfo
 import org.matrix.androidsdk.data.RoomState
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
@@ -332,5 +335,23 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         Assert.assertEquals(5, messagesReceivedByBobCount)
 
         return cryptoTestData
+    }
+
+    fun createFakeMegolmBackupAuthData(): MegolmBackupAuthData {
+        return MegolmBackupAuthData().apply {
+            publicKey = "abcdefg"
+            signatures = HashMap<String, Any>().apply {
+                this["something"] = HashMap<String, String>().apply {
+                    this["ed25519:something"] = "hijklmnop"
+                }
+            }
+        }
+    }
+
+    fun createFakeMegolmBackupCreationInfo(): MegolmBackupCreationInfo {
+        return MegolmBackupCreationInfo().apply {
+            algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+            authData = createFakeMegolmBackupAuthData()
+        }
     }
 }
