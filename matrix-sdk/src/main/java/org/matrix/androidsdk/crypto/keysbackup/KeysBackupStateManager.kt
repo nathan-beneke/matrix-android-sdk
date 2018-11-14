@@ -23,7 +23,7 @@ class KeysBackupStateManager {
     private val mListeners = ArrayList<KeysBackupStateListener>()
 
     // Backup state
-    var state = KeysBackupState.Disabled
+    var state = KeysBackupState.Unknown
         set(newState) {
             field = newState
 
@@ -43,17 +43,19 @@ class KeysBackupStateManager {
      *                               V        deleteKeyBackupVersion (on current backup)
      *  +---------------------->  UNKNOWN  <-------------
      *  |                            |
-     *  |                            | checkAndStartKeyBackup
+     *  |                            | checkAndStartKeyBackup (at startup or on new verified device)
      *  |                            V
      *  |                     CHECKING BACKUP
      *  |                            |
      *  |  Network error             |
-     *  +<---------------------------+-------------> DISABLED <----------+
-     *  |                            |                  |                |
-     *  |                            |                  V                |
-     *  |                            |               ENABLING            |
-     *  |                            V                  |          error |
-     *  |                  +--->   READY   <------------+----------------+
+     *  +<---------------------------+---------> DISABLED <----------------------+
+     *  |                            |              |                            |
+     *  |                            |              | createKeyBackupVersion     |
+     *  |                            |              V                            |
+     *  |                            |           ENABLING                        |
+     *  |                            |              |                            |
+     *  |                            V              |                      error |
+     *  |                  +--->   READY   <--------+----------------------------+
      *  |                  |         |
      *  |                  |         | on new key
      *  |                  |         V
@@ -67,8 +69,12 @@ class KeysBackupStateManager {
      */
     enum class KeysBackupState {
         // Backup is not enabled
+        Unknown,
+        // Checking if backup is enabled on home server
+        CheckingBackUpOnHomeserver,
+        // Backup from this device is not enabled
         Disabled,
-        // Backup is being enabled
+        // Backup is being enabled: the backup version is being created on the homeserver
         Enabling,
         // Backup is enabled and ready to send backup to the homeserver
         ReadyToBackUp,

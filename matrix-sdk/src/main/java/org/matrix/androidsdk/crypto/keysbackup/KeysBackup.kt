@@ -65,10 +65,15 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     private var mKeysBackupStateListener: KeysBackupStateManager.KeysBackupStateListener? = null
 
     val isEnabled: Boolean
-        get() = mKeysBackupStateManager.state !== KeysBackupStateManager.KeysBackupState.Disabled
+        get() = mKeysBackupStateManager.state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                || mKeysBackupStateManager.state == KeysBackupStateManager.KeysBackupState.WillBackUp
+                || mKeysBackupStateManager.state == KeysBackupStateManager.KeysBackupState.BackingUp
 
     val state: KeysBackupStateManager.KeysBackupState
         get() = mKeysBackupStateManager.state
+
+    val currentBackupVersion: String?
+        get() = mKeyBackupVersion?.version
 
     fun addListener(listener: KeysBackupStateManager.KeysBackupStateListener) {
         mKeysBackupStateManager.addListener(listener)
@@ -155,6 +160,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             // so this is symmetrical).
             if (mKeyBackupVersion != null && version == mKeyBackupVersion!!.version) {
                 disableKeyBackup()
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
 
             mRoomKeysRestClient.deleteKeysBackup(version, callback)
@@ -444,6 +450,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             mCrypto.decryptingThreadHandler.postDelayed({ sendKeyBackup() }, delayInMs.toLong())
         } else {
             Log.d(LOG_TAG, "maybeSendKeyBackup: Skip it because state: " + mKeysBackupStateManager.state)
+
+            if (mKeysBackupStateManager.state == KeysBackupStateManager.KeysBackupState.Unknown) {
+                // If not already done, check for a valid backup version on the homeserver.
+                // If one, maybeSendKeyBackup will be called again.
+                checkAndStartKeyBackup()
+            }
         }
     }
 
@@ -454,6 +466,68 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      */
     fun getCurrentVersion(callback: ApiCallback<KeysVersionResult>) {
         mRoomKeysRestClient.getKeysBackupVersion(null, callback)
+    }
+
+    /**
+     * Check the server for an active key backup.
+     *
+     * If one is present and has a valid signature from one of the user's verified
+     * devices, start backing up to it.
+     */
+    fun checkAndStartKeyBackup() {
+        if (mKeysBackupStateManager.state != KeysBackupStateManager.KeysBackupState.Unknown) {
+            // Wrong state
+            return
+        }
+
+        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver
+
+        getCurrentVersion(object : ApiCallback<KeysVersionResult> {
+            override fun onSuccess(keyBackupVersion: KeysVersionResult) {
+                isKeyBackupTrusted(keyBackupVersion, object : SuccessCallback<KeyBackupVersionTrust> {
+                    override fun onSuccess(trustInfo: KeyBackupVersionTrust) {
+                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+
+                        if (trustInfo.usable) {
+                            Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
+                            if (mKeyBackupVersion == null) {
+                                Log.d(LOG_TAG, "   -> enabling key backups")
+                                enableKeyBackup(keyBackupVersion)
+                            } else if (mKeyBackupVersion!!.version.equals(keyBackupVersion.version)) {
+                                Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep usint it")
+                            } else {
+                                Log.d(LOG_TAG, "   -> disable the current version (" + mKeyBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
+                                disableKeyBackup()
+                                enableKeyBackup(keyBackupVersion)
+                            }
+                        } else {
+                            Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
+                            if (mKeyBackupVersion == null) {
+                                Log.d(LOG_TAG, "   -> not enabling key backup")
+                            } else {
+                                Log.d(LOG_TAG, "   -> disabling key backup")
+                                disableKeyBackup()
+                            }
+                        }
+                    }
+                })
+            }
+
+            override fun onUnexpectedError(e: java.lang.Exception?) {
+                // Stay in Unknown state
+                Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version", e)
+            }
+
+            override fun onNetworkError(e: java.lang.Exception?) {
+                // Stay in Unknown state
+                Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version", e)
+            }
+
+            override fun onMatrixError(e: MatrixError?) {
+                // Stay in Unknown state
+                Log.e(LOG_TAG, "checkAndStartKeyBackup: Failed to get current version " + e?.localizedMessage)
+            }
+        })
     }
 
     /* ==========================================================================================
@@ -524,7 +598,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
         val currentState = mKeysBackupStateManager.state
 
-        if (currentState === KeysBackupStateManager.KeysBackupState.BackingUp || currentState === KeysBackupStateManager.KeysBackupState.Disabled) {
+        if (currentState === KeysBackupStateManager.KeysBackupState.BackingUp || !isEnabled) {
             // Do nothing if we are already backing up or if the backup has been disabled
             Log.d(LOG_TAG, "sendKeyBackup: Invalid state: $currentState")
             return

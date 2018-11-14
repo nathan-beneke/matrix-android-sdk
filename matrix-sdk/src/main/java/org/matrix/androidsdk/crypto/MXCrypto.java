@@ -472,6 +472,8 @@ public class MXCrypto {
 
                                                             mOutgoingRoomKeyRequestManager.start();
 
+                                                            mKeysBackup.checkAndStartKeyBackup();
+
                                                             synchronized (mInitializationCallbacks) {
                                                                 for (ApiCallback<Void> callback : mInitializationCallbacks) {
                                                                     final ApiCallback<Void> fCallback = callback;

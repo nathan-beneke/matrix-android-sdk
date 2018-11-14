@@ -32,7 +32,6 @@ import org.matrix.androidsdk.crypto.keysbackup.KeysBackupStateManager
 import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupCreationInfo
 import org.matrix.androidsdk.rest.callback.SuccessCallback
 import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
-import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.keys.KeysVersion
 import org.matrix.androidsdk.rest.model.keys.KeysVersionResult
 import java.lang.Exception
@@ -208,6 +207,9 @@ class KeysBackupTest {
             override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
                 // Check the backup completes
                 if (keysBackup.state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
+                    // Remove itself from the list of listeners
+                    keysBackup.removeListener(this)
+
                     val backedUpKeys = cryptoStore.inboundGroupSessionsCount(true)
 
                     Assert.assertEquals("All keys must have been marked as backed up", keys, backedUpKeys)
@@ -260,7 +262,7 @@ class KeysBackupTest {
     }
 
     /**
-     * Check that encryption and decryption of megolm keys
+     * Check encryption and decryption of megolm keys in the backup.
      * - Pick a megolm key
      * - Check [MXKeyBackup encryptGroupSession] returns stg
      * - Check [MXKeyBackup pkDecryptionFromRecoveryKey] is able to create a OLMPkDecryption
@@ -347,8 +349,6 @@ class KeysBackupTest {
                         Assert.assertEquals(info.totalNumberOfKeys, info.successfullyNumberOfImportedKeys)
                         // - The new device must have the same count of megolm keys
                         Assert.assertEquals(aliceKeys1.size, aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
-                        // TODO: This test will pass once the backup will be started automatically when a backup version is detected
-                        Assert.assertEquals(aliceKeys1.size, aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(true))
                         // - Alice must have the same keys on both devices
                         for (aliceKey1 in aliceKeys1) {
                             val aliceKey2 = aliceSession2.crypto!!.cryptoStore.getInboundGroupSession(aliceKey1.mSession.sessionIdentifier(), aliceKey1.mSenderKey)
@@ -412,6 +412,54 @@ class KeysBackupTest {
         mTestHelper.await(latch)
 
         cryptoTestData.clear(context)
+    }
+
+    /**
+     * Check backup starts automatically if there is an existing and compatible backup
+     * version on the homeserver.
+     * - Create a backup version
+     * - Restart alice session
+     * -> The new alice session must back up to the same version
+     */
+    @Test
+    fun testCheckAndStartKeyBackupWhenRestartingAMatrixSession() {
+        // - Create a backup version
+        // - Create a backup version
+        val context = InstrumentationRegistry.getContext()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
+
+        val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        Assert.assertFalse(keysBackup.isEnabled)
+
+        val keyBackupCreationInfo = prepareAndCreateKeyBackupData(keysBackup)
+
+        Assert.assertTrue(keysBackup.isEnabled)
+
+        // - Restart alice session
+        // - Log Alice on a new device
+        val aliceSession2 = mTestHelper.logIntoAccount(cryptoTestData.firstSession.myUserId, defaultSessionParams)
+
+        cryptoTestData.clear(context)
+
+        // -> The new alice session must back up to the same version
+        val latch = CountDownLatch(1)
+        keysBackup.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
+            override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
+                // Check the backup completes
+                if (keysBackup.state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
+                    // Remove itself from the list of listeners
+                    keysBackup.removeListener(this)
+
+                    Assert.assertEquals(aliceSession2.crypto!!.keysBackup.currentBackupVersion, keyBackupCreationInfo.second)
+
+                    latch.countDown()
+                }
+            }
+        })
+        mTestHelper.await(latch)
+
+        aliceSession2.clear(context)
     }
 
     /* ==========================================================================================
