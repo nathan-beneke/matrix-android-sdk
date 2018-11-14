@@ -608,14 +608,18 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
         val currentState = mKeysBackupStateManager.state
 
-        if (currentState === KeysBackupStateManager.KeysBackupState.BackingUp || !isEnabled) {
-            // Do nothing if we are already backing up or if the backup has been disabled
+        if (currentState === KeysBackupStateManager.KeysBackupState.BackingUp) {
+            // Do nothing if we are already backing up
             Log.d(LOG_TAG, "sendKeyBackup: Invalid state: $currentState")
             return
         }
 
         // Sanity check
-        if (mBackupKey == null || mKeysBackupVersion == null) {
+        if (!isEnabled || mBackupKey == null || mKeysBackupVersion == null) {
+            if (backupAllGroupSessionsObserver != null) {
+                backupAllGroupSessionsObserver!!.onUnexpectedError(IllegalStateException("Invalid configuration"))
+            }
+
             return
         }
 
