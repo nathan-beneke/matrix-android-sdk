@@ -125,15 +125,15 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      */
     fun createKeyBackupVersion(keyBackupCreationInfo: MegolmBackupCreationInfo,
                                callback: ApiCallback<KeysVersion>) {
-        // Reset backup markers. Only on success?
-        mCrypto.cryptoStore.resetBackupMarkers()
-
         val createKeysBackupVersionBody = CreateKeysBackupVersionBody()
         createKeysBackupVersionBody.algorithm = keyBackupCreationInfo.algorithm
         createKeysBackupVersionBody.authData = JsonUtils.getGson(false).toJsonTree(keyBackupCreationInfo.authData)
 
         mRoomKeysRestClient.createKeysBackupVersion(createKeysBackupVersionBody, object : SimpleApiCallback<KeysVersion>(callback) {
             override fun onSuccess(info: KeysVersion) {
+                // Reset backup markers.
+                mCrypto.cryptoStore.resetBackupMarkers()
+
                 val keyBackupVersion = KeysVersionResult()
                 keyBackupVersion.algorithm = createKeysBackupVersionBody.algorithm
                 keyBackupVersion.authData = createKeysBackupVersionBody.authData
@@ -609,10 +609,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     private fun sendKeyBackup() {
+        Log.d(LOG_TAG, "sendKeyBackup")
+
         // Get a chunk of keys to backup
         val sessions = mCrypto.cryptoStore.inboundGroupSessionsToBackup(KEY_BACKUP_SEND_KEYS_MAX_COUNT)
 
-        Log.d(LOG_TAG, "sendKeyBackup: " + sessions.size + " sessions to back up")
+        Log.d(LOG_TAG, "sendKeyBackup: 1 - " + sessions.size + " sessions to back up")
 
         if (sessions.isEmpty()) {
             // Backup is up to date
@@ -639,6 +641,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.BackingUp
 
+        Log.d(LOG_TAG, "sendKeyBackup: 2 - Encrypting keys")
+
         // Gather data to send to the homeserver
         // roomId -> sessionId -> MXKeyBackupData
         val keysBackupData = KeysBackupData()
@@ -660,6 +664,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
         }
 
+        Log.d(LOG_TAG, "sendKeyBackup: 4 - Sending request")
+
         // Make the request
         mRoomKeysRestClient.sendKeysBackup(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
             override fun onNetworkError(e: Exception) {
@@ -671,8 +677,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             }
 
             private fun onError() {
-                // TODO: Manage retries
                 Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed.")
+
+                // Retry a bit later
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                maybeSendKeyBackup()
             }
 
             override fun onMatrixError(e: MatrixError) {
@@ -702,6 +711,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             }
 
             override fun onSuccess(info: Void) {
+                Log.d(LOG_TAG, "sendKeyBackup: 5a - Request complete")
+
                 // Mark keys as backed up
                 for (session in sessions) {
                     try {
