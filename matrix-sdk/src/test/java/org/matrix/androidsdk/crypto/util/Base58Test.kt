@@ -40,11 +40,13 @@ class Base58Test {
     @Test
     fun encode_curve25519() {
         // Encode a 32 bytes key
-        Assert.assertEquals("4F85ZySpwyY6FuH7mQYyyr5b8nV9zFRBLj92AJa37sMr", base58encode(("0123456789" + "0123456789" + "0123456789" + "01").toByteArray()))
+        Assert.assertEquals("4F85ZySpwyY6FuH7mQYyyr5b8nV9zFRBLj92AJa37sMr",
+                base58encode(("0123456789" + "0123456789" + "0123456789" + "01").toByteArray()))
     }
 
     @Test
     fun decode_curve25519() {
-        Assert.assertArrayEquals(("0123456789" + "0123456789" + "0123456789" + "01").toByteArray(), base58decode("4F85ZySpwyY6FuH7mQYyyr5b8nV9zFRBLj92AJa37sMr"))
+        Assert.assertArrayEquals(("0123456789" + "0123456789" + "0123456789" + "01").toByteArray(),
+                base58decode("4F85ZySpwyY6FuH7mQYyyr5b8nV9zFRBLj92AJa37sMr"))
     }
 }

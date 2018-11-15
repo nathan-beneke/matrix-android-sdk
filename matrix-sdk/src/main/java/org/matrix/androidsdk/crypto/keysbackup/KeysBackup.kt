@@ -517,7 +517,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                                 } else if (mKeysBackupVersion!!.version.equals(keyBackupVersion.version)) {
                                     Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep usint it")
                                 } else {
-                                    Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version + ") and enabling the new one: " + keyBackupVersion.version)
+                                    Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version
+                                            + ") and enabling the new one: " + keyBackupVersion.version)
                                     disableKeyBackup()
                                     enableKeyBackup(keyBackupVersion)
                                 }
@@ -749,7 +750,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         sessionBackupData["algorithm"] = sessionData!!.algorithm
         sessionBackupData["sender_key"] = sessionData.sender_key
         sessionBackupData["sender_claimed_keys"] = sessionData.sender_claimed_keys
-        sessionBackupData["forwarding_curve25519_key_chain"] = if (sessionData.forwardingCurve25519KeyChain == null) ArrayList<Any>() else sessionData.forwardingCurve25519KeyChain
+        sessionBackupData["forwarding_curve25519_key_chain"] =
+                if (sessionData.forwardingCurve25519KeyChain == null) ArrayList<Any>() else sessionData.forwardingCurve25519KeyChain
         sessionBackupData["session_key"] = sessionData.session_key
 
         var encryptedSessionBackupData: OlmPkMessage? = null

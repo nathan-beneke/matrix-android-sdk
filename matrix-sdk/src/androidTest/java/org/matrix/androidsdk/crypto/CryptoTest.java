@@ -810,28 +810,33 @@ public class CryptoTest {
             }
         });
 
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(2, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
+        roomFromBobPOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), bobSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(3, nbReceivedMessagesFromBob[0]);
 
         list.add(new CountDownLatch(1));
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(
+                mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(2, nbReceivedMessagesFromAlice[0]);
 
@@ -3310,7 +3315,8 @@ public class CryptoTest {
         });
 
         // Alice sends a first event
-        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]), aliceSession, aliceRoomId), callback);
+        roomFromAlicePOV.sendEvent(mCryptoTestHelper.buildTextEvent(mCryptoTestHelper.getMessagesFromAlice().get(nbReceivedMessagesFromAlice[0]),
+                aliceSession, aliceRoomId), callback);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertTrue(results.containsKey("onToDeviceEvent"));
         Assert.assertEquals(1, nbReceivedMessagesFromAlice[0]);
@@ -3319,7 +3325,8 @@ public class CryptoTest {
         Assert.assertTrue(roomFromBobPOV.canReplyTo(bobReceivedEvents.get(0)));
 
         list.add(new CountDownLatch(1));
-        roomFromBobPOV.sendTextMessage(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]), null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
+        roomFromBobPOV.sendTextMessage(mCryptoTestHelper.getMessagesFromBob().get(nbReceivedMessagesFromBob[0]),
+                null, Message.MSGTYPE_TEXT, bobReceivedEvents.get(0), null);
         mTestHelper.await(list.get(list.size() - 1));
         Assert.assertEquals(1, nbReceivedMessagesFromBob[0]);
 

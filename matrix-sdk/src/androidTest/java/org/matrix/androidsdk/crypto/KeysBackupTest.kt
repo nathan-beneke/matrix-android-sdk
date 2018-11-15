@@ -352,7 +352,8 @@ class KeysBackupTest {
                         Assert.assertEquals(aliceKeys1.size, aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
                         // - Alice must have the same keys on both devices
                         for (aliceKey1 in aliceKeys1) {
-                            val aliceKey2 = aliceSession2.crypto!!.cryptoStore.getInboundGroupSession(aliceKey1.mSession.sessionIdentifier(), aliceKey1.mSenderKey)
+                            val aliceKey2 = aliceSession2.crypto!!
+                                    .cryptoStore.getInboundGroupSession(aliceKey1.mSession.sessionIdentifier(), aliceKey1.mSenderKey)
                             Assert.assertNotNull(aliceKey2)
                             Assert.assertEquals(aliceKey1.exportKeys(), aliceKey2.exportKeys())
                         }
