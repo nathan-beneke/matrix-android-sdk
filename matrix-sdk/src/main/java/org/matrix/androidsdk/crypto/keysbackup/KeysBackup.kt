@@ -438,6 +438,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         return decryption
     }
 
+    /**
+     * Do a backup if there are new keys.
+     */
     fun maybeSendKeyBackup() {
         if (mKeysBackupStateManager.state === KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
             mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WillBackUp
@@ -445,9 +448,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             // Wait between 0 and 10 seconds, to avoid backup requests from
             // different clients hitting the server all at the same time when a
             // new key is sent
-            val delayInMs = mRandom.nextInt(KEY_BACKUP_WAITING_TIME_TO_SEND_KEY_BACKUP_MILLIS)
+            val delayInMs = mRandom.nextInt(KEY_BACKUP_WAITING_TIME_TO_SEND_KEY_BACKUP_MILLIS).toLong()
 
-            mCrypto.decryptingThreadHandler.postDelayed({ sendKeyBackup() }, delayInMs.toLong())
+            mCrypto.decryptingThreadHandler.postDelayed({ sendKeyBackup() }, delayInMs)
         } else {
             Log.d(LOG_TAG, "maybeSendKeyBackup: Skip it because state: " + mKeysBackupStateManager.state)
 
