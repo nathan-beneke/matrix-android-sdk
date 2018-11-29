@@ -2102,80 +2102,7 @@ public class Room {
 
         final String prevEventId = event.eventId;
 
-        final ApiCallback<CreatedEvent> localCB = new ApiCallback<CreatedEvent>() {
-            @Override
-            public void onSuccess(final CreatedEvent createdEvent) {
-                if (null != getStore()) {
-                    // remove the tmp event
-                    getStore().deleteEvent(event);
-                }
-
-                // replace the tmp event id by the final one
-                boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
-
-                // update the event with the server response
-                event.eventId = createdEvent.eventId;
-                event.originServerTs = System.currentTimeMillis();
-                mDataHandler.updateEventState(event, Event.SentState.SENT);
-
-                // the message echo is not yet echoed
-                if (null != getStore() && !getStore().doesEventExist(createdEvent.eventId, getRoomId())) {
-                    getStore().storeLiveRoomEvent(event);
-                }
-
-                // send the dedicated read receipt asap
-                markAllAsRead(isReadMarkerUpdated, null);
-
-                if (null != getStore()) {
-                    getStore().commit();
-                }
-                mDataHandler.onEventSent(event, prevEventId);
-
-                try {
-                    callback.onSuccess(null);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "sendEvent exception " + e.getMessage(), e);
-                }
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                event.unsentException = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-                try {
-                    callback.onNetworkError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                event.unsentMatrixError = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-
-                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
-                    mDataHandler.onConfigurationError(e.errcode);
-                } else {
-                    try {
-                        callback.onMatrixError(e);
-                    } catch (Exception anException) {
-                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
-                    }
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                event.unsentException = e;
-                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-                try {
-                    callback.onUnexpectedError(e);
-                } catch (Exception anException) {
-                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
-                }
-            }
-        };
+        final ApiCallback<CreatedEvent> localCB = getLocalCB(event, callback, prevEventId);
 
         if (isEncrypted() && (null != mDataHandler.getCrypto())) {
             mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
@@ -2265,6 +2192,84 @@ public class Room {
                         .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
+    }
+
+    @NonNull
+    private ApiCallback<CreatedEvent> getLocalCB(final Event event, final ApiCallback<Void> callback, final String prevEventId) {
+        return new ApiCallback<CreatedEvent>() {
+            @Override
+            public void onSuccess(final CreatedEvent createdEvent) {
+                if (null != getStore()) {
+                    // remove the tmp event
+                    getStore().deleteEvent(event);
+                }
+
+                // replace the tmp event id by the final one
+                boolean isReadMarkerUpdated = TextUtils.equals(getReadMarkerEventId(), event.eventId);
+
+                // update the event with the server response
+                event.eventId = createdEvent.eventId;
+                event.originServerTs = System.currentTimeMillis();
+                mDataHandler.updateEventState(event, Event.SentState.SENT);
+
+                // the message echo is not yet echoed
+                if (null != getStore() && !getStore().doesEventExist(createdEvent.eventId, getRoomId())) {
+                    getStore().storeLiveRoomEvent(event);
+                }
+
+                // send the dedicated read receipt asap
+                markAllAsRead(isReadMarkerUpdated, null);
+
+                if (null != getStore()) {
+                    getStore().commit();
+                }
+                mDataHandler.onEventSent(event, prevEventId);
+
+                try {
+                    callback.onSuccess(null);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "sendEvent exception " + e.getMessage(), e);
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+                try {
+                    callback.onNetworkError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                event.unsentMatrixError = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+
+                if (MatrixError.isConfigurationErrorCode(e.errcode)) {
+                    mDataHandler.onConfigurationError(e.errcode);
+                } else {
+                    try {
+                        callback.onMatrixError(e);
+                    } catch (Exception anException) {
+                        Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
+                    }
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+                try {
+                    callback.onUnexpectedError(e);
+                } catch (Exception anException) {
+                    Log.e(LOG_TAG, "sendEvent exception " + anException.getMessage(), anException);
+                }
+            }
+        };
     }
 
     /**
