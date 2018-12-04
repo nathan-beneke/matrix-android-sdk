@@ -2125,62 +2125,7 @@ public class Room {
 
             // Encrypt the content before sending
             mDataHandler.getCrypto()
-                    .encryptEventContent(contentAsJsonObject, event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
-                        @Override
-                        public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
-                            // update the event content with the encrypted data
-                            event.type = encryptEventContentResult.mEventType;
-
-                            // Add the "m.relates_to" data to the encrypted event here
-                            JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
-                            if (relatesTo != null) {
-                                encryptedContent.add("m.relates_to", relatesTo);
-                            }
-                            event.updateContent(encryptedContent);
-                            mDataHandler.decryptEvent(event, null);
-
-                            // sending in progress
-                            mDataHandler.updateEventState(event, Event.SentState.SENDING);
-                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.eventId, getRoomId(),
-                                    encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-
-                            if (null != callback) {
-                                callback.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            // update the sent state if the message encryption failed because there are unknown devices.
-                            if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
-                                event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
-                            } else {
-                                event.mSentState = Event.SentState.UNDELIVERED;
-                            }
-                            event.unsentMatrixError = e;
-                            mDataHandler.onEventSentStateUpdated(event);
-
-                            if (null != callback) {
-                                callback.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
+                    .encryptEventContent(contentAsJsonObject, event.getType(), this, getCallback(event, callback, localCB, relatesTo));
         } else {
             mDataHandler.updateEventState(event, Event.SentState.SENDING);
 
@@ -2192,6 +2137,66 @@ public class Room {
                         .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
             }
         }
+    }
+
+    @NonNull
+    private ApiCallback<MXEncryptEventContentResult> getCallback(final Event event, final ApiCallback<Void> callback, final ApiCallback<CreatedEvent> localCB, final JsonElement relatesTo) {
+        return new ApiCallback<MXEncryptEventContentResult>() {
+            @Override
+            public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                // update the event content with the encrypted data
+                event.type = encryptEventContentResult.mEventType;
+
+                // Add the "m.relates_to" data to the encrypted event here
+                JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
+                if (relatesTo != null) {
+                    encryptedContent.add("m.relates_to", relatesTo);
+                }
+                event.updateContent(encryptedContent);
+                mDataHandler.decryptEvent(event, null);
+
+                // sending in progress
+                mDataHandler.updateEventState(event, Event.SentState.SENDING);
+                mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.eventId, getRoomId(),
+                        encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                // update the sent state if the message encryption failed because there are unknown devices.
+                if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
+                    event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
+                } else {
+                    event.mSentState = Event.SentState.UNDELIVERED;
+                }
+                event.unsentMatrixError = e;
+                mDataHandler.onEventSentStateUpdated(event);
+
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        };
     }
 
     @NonNull
