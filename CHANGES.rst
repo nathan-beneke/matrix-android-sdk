@@ -14,12 +14,13 @@ Bugfix:
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
  - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
+ - Added method MXDataHandler.retrieveRoomRestClient()
 
 Translations:
  -
 
 Others:
- -
+ - Added Room.getCallback() and Room.getLocalCB() to reduce cyclomatic complexity and length of Room.sendEvent()
 
 Build:
  -
