@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/nathan-beneke/matrix-android-sdk.svg?branch=refactorSendEvent)](https://travis-ci.org/nathan-beneke/matrix-android-sdk)
-
 [![Jenkins](https://img.shields.io/jenkins/s/https/matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop.svg)](https://matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop/)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=alert_status)](https://sonarcloud.io/dashboard?id=matrix.android.sdk)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=VULNERABILITY)

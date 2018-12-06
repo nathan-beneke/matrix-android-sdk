@@ -29,7 +29,6 @@ import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.EventDisplay;
 
-
 /**
  * this class defines a MessagesAdapter Item.
  */
