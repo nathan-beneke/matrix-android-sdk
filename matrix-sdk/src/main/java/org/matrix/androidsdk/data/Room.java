@@ -528,7 +528,7 @@ public class Room {
             event = mMemberEventByEventId.get(member.getOriginalEventId());
 
             if (null == event) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback) {
+                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback){
                     @Override
                     public void onSuccess(Event event) {
                         if (null != event) {
@@ -2140,7 +2140,8 @@ public class Room {
     }
 
     @NonNull
-    private ApiCallback<MXEncryptEventContentResult> getCallback(final Event event, final ApiCallback<Void> callback, final ApiCallback<CreatedEvent> localCB, final JsonElement relatesTo) {
+    private ApiCallback<MXEncryptEventContentResult> getCallback(final Event event, final ApiCallback<Void> callback,final ApiCallback<CreatedEvent> localCB,
+                                                                 final JsonElement relatesTo) {
         return new ApiCallback<MXEncryptEventContentResult>() {
             @Override
             public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
