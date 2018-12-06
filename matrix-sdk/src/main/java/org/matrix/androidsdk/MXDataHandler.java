@@ -2106,4 +2106,8 @@ public class MXDataHandler {
 
         return directChatRoomIdsList;
     }
+
+    public RoomsRestClient retrieveRoomRestClient(){
+        return this.getDataRetriever().getRoomsRestClient();
+    }
 }
