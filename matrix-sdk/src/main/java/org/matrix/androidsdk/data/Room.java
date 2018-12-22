@@ -528,7 +528,7 @@ public class Room {
             event = mMemberEventByEventId.get(member.getOriginalEventId());
 
             if (null == event) {
-                mDataHandler.getDataRetriever().getRoomsRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback) {
+                mDataHandler.retrieveRoomRestClient().getEvent(getRoomId(), member.getOriginalEventId(), new SimpleApiCallback<Event>(callback){
                     @Override
                     public void onSuccess(Event event) {
                         if (null != event) {
@@ -720,7 +720,7 @@ public class Room {
     private void join(final String roomAlias, final Map<String, Object> extraParams, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
-        mDataHandler.getDataRetriever().getRoomsRestClient()
+        mDataHandler.retrieveRoomRestClient()
                 .joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
                     @Override
                     public void onSuccess(final RoomResponse aResponse) {
@@ -818,7 +818,7 @@ public class Room {
     public void updateUserPowerLevels(String userId, int powerLevel, ApiCallback<Void> callback) {
         PowerLevels powerLevels = getState().getPowerLevels().deepCopy();
         powerLevels.setUserPowerLevel(userId, powerLevel);
-        mDataHandler.getDataRetriever().getRoomsRestClient().updatePowerLevels(getRoomId(), powerLevels, callback);
+        mDataHandler.retrieveRoomRestClient().updatePowerLevels(getRoomId(), powerLevels, callback);
     }
 
     /**
@@ -828,7 +828,7 @@ public class Room {
      * @param callback  the async callback
      */
     public void updateName(final String aRoomName, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateRoomName(getRoomId(), aRoomName, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateRoomName(getRoomId(), aRoomName, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().name = aRoomName;
@@ -844,7 +844,7 @@ public class Room {
      * @param callback the async callback
      */
     public void updateTopic(final String aTopic, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateTopic(getRoomId(), aTopic, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateTopic(getRoomId(), aTopic, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().topic = aTopic;
@@ -862,7 +862,7 @@ public class Room {
     public void updateCanonicalAlias(final String aCanonicalAlias, final ApiCallback<Void> callback) {
         final String fCanonicalAlias = TextUtils.isEmpty(aCanonicalAlias) ? null : aCanonicalAlias;
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateCanonicalAlias(getRoomId(), fCanonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateCanonicalAlias(getRoomId(), fCanonicalAlias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().setCanonicalAlias(aCanonicalAlias);
@@ -898,7 +898,7 @@ public class Room {
             return;
         }
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().removeRoomAlias(alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().removeAlias(alias);
@@ -924,7 +924,7 @@ public class Room {
             return;
         }
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().setRoomIdByAlias(getRoomId(), alias, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().addAlias(alias);
@@ -972,7 +972,7 @@ public class Room {
         Map<String, Object> params = new HashMap<>();
         params.put("groups", groupIds);
 
-        mDataHandler.getDataRetriever().getRoomsRestClient()
+        mDataHandler.retrieveRoomRestClient()
                 .sendStateEvent(getRoomId(), Event.EVENT_TYPE_STATE_RELATED_GROUPS, null, params, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
@@ -1030,7 +1030,7 @@ public class Room {
      * @param callback  the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateAvatarUrl(getRoomId(), avatarUrl, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().url = avatarUrl;
@@ -1046,7 +1046,7 @@ public class Room {
      * @param callback          the async callback
      */
     public void updateHistoryVisibility(final String historyVisibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient()
+        mDataHandler.retrieveRoomRestClient()
                 .updateHistoryVisibility(getRoomId(), historyVisibility, new RoomInfoUpdateCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
@@ -1063,7 +1063,7 @@ public class Room {
      * @param callback   the async callback
      */
     public void updateDirectoryVisibility(final String visibility, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateDirectoryVisibility(getRoomId(), visibility, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateDirectoryVisibility(getRoomId(), visibility, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().visibility = visibility;
@@ -1080,7 +1080,7 @@ public class Room {
      * @param callback the callback returning the visibility response value.
      */
     public void getDirectoryVisibility(final String roomId, final ApiCallback<String> callback) {
-        RoomsRestClient roomRestApi = mDataHandler.getDataRetriever().getRoomsRestClient();
+        RoomsRestClient roomRestApi = mDataHandler.retrieveRoomRestClient();
 
         if (null != roomRestApi) {
             roomRestApi.getDirectoryVisibility(roomId, new SimpleApiCallback<RoomDirectoryVisibility>(callback) {
@@ -1106,7 +1106,7 @@ public class Room {
      * @param aCallBackResp the async callback
      */
     public void updateJoinRules(final String aRule, final ApiCallback<Void> aCallBackResp) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateJoinRules(getRoomId(), aRule, new RoomInfoUpdateCallback<Void>(aCallBackResp) {
+        mDataHandler.retrieveRoomRestClient().updateJoinRules(getRoomId(), aRule, new RoomInfoUpdateCallback<Void>(aCallBackResp) {
             @Override
             public void onSuccess(Void info) {
                 getState().join_rule = aRule;
@@ -1123,7 +1123,7 @@ public class Room {
      * @param callback         the async callback
      */
     public void updateGuestAccess(final String aGuestAccessRule, final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new RoomInfoUpdateCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().updateGuestAccess(getRoomId(), aGuestAccessRule, new RoomInfoUpdateCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 getState().guest_access = aGuestAccessRule;
@@ -1504,7 +1504,7 @@ public class Room {
                 }
             });
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId,
+            mDataHandler.retrieveRoomRestClient().sendReadMarker(getRoomId(), readMarkerEventId, readReceiptEventId,
                     new SimpleApiCallback<Void>(callback) {
                         @Override
                         public void onSuccess(Void info) {
@@ -1605,7 +1605,7 @@ public class Room {
     public void sendTypingNotification(boolean isTyping, int timeout, ApiCallback<Void> callback) {
         // send the event only if the user has joined the room.
         if (isJoined()) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().sendTypingNotification(getRoomId(), mMyUserId, isTyping, timeout, callback);
+            mDataHandler.retrieveRoomRestClient().sendTypingNotification(getRoomId(), mMyUserId, isTyping, timeout, callback);
         }
     }
 
@@ -1956,7 +1956,7 @@ public class Room {
     private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
+            mDataHandler.retrieveRoomRestClient().addTag(getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -1973,7 +1973,7 @@ public class Room {
     private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
+            mDataHandler.retrieveRoomRestClient().removeTag(getRoomId(), tag, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2027,7 +2027,7 @@ public class Room {
      * @param callback the asynchronous callback
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
+        mDataHandler.retrieveRoomRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
     }
 
     //==============================================================================================================
@@ -2102,7 +2102,107 @@ public class Room {
 
         final String prevEventId = event.eventId;
 
-        final ApiCallback<CreatedEvent> localCB = new ApiCallback<CreatedEvent>() {
+        final ApiCallback<CreatedEvent> localCB = getLocalCB(event, callback, prevEventId);
+
+        if (isEncrypted() && (null != mDataHandler.getCrypto())) {
+            mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
+
+            // Store the "m.relates_to" data and remove them from event content before encrypting the event content
+            final JsonElement relatesTo;
+
+            JsonObject contentAsJsonObject = event.getContentAsJsonObject();
+
+            if (contentAsJsonObject != null
+                    && contentAsJsonObject.has("m.relates_to")) {
+                // Get a copy of "m.relates_to" data...
+                relatesTo = contentAsJsonObject.get("m.relates_to");
+
+                // ... and remove "m.relates_to" data from the content before encrypting it
+                contentAsJsonObject.remove("m.relates_to");
+            } else {
+                relatesTo = null;
+            }
+
+            // Encrypt the content before sending
+            mDataHandler.getCrypto()
+                    .encryptEventContent(contentAsJsonObject, event.getType(), this, getCallback(event, callback, localCB, relatesTo));
+        } else {
+            mDataHandler.updateEventState(event, Event.SentState.SENDING);
+
+            if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
+                mDataHandler.retrieveRoomRestClient()
+                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+            } else {
+                mDataHandler.retrieveRoomRestClient()
+                        .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
+            }
+        }
+    }
+
+    @NonNull
+    private ApiCallback<MXEncryptEventContentResult> getCallback(final Event event, final ApiCallback<Void> callback,final ApiCallback<CreatedEvent> localCB,
+                                                                 final JsonElement relatesTo) {
+        return new ApiCallback<MXEncryptEventContentResult>() {
+            @Override
+            public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
+                // update the event content with the encrypted data
+                event.type = encryptEventContentResult.mEventType;
+
+                // Add the "m.relates_to" data to the encrypted event here
+                JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
+                if (relatesTo != null) {
+                    encryptedContent.add("m.relates_to", relatesTo);
+                }
+                event.updateContent(encryptedContent);
+                mDataHandler.decryptEvent(event, null);
+
+                // sending in progress
+                mDataHandler.updateEventState(event, Event.SentState.SENDING);
+                mDataHandler.retrieveRoomRestClient().sendEventToRoom(event.eventId, getRoomId(),
+                        encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+
+                if (null != callback) {
+                    callback.onNetworkError(e);
+                }
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                // update the sent state if the message encryption failed because there are unknown devices.
+                if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
+                    event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
+                } else {
+                    event.mSentState = Event.SentState.UNDELIVERED;
+                }
+                event.unsentMatrixError = e;
+                mDataHandler.onEventSentStateUpdated(event);
+
+                if (null != callback) {
+                    callback.onMatrixError(e);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                event.unsentException = e;
+                mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
+
+                if (null != callback) {
+                    callback.onUnexpectedError(e);
+                }
+            }
+        };
+    }
+
+    @NonNull
+    private ApiCallback<CreatedEvent> getLocalCB(final Event event, final ApiCallback<Void> callback, final String prevEventId) {
+        return new ApiCallback<CreatedEvent>() {
             @Override
             public void onSuccess(final CreatedEvent createdEvent) {
                 if (null != getStore()) {
@@ -2176,95 +2276,6 @@ public class Room {
                 }
             }
         };
-
-        if (isEncrypted() && (null != mDataHandler.getCrypto())) {
-            mDataHandler.updateEventState(event, Event.SentState.ENCRYPTING);
-
-            // Store the "m.relates_to" data and remove them from event content before encrypting the event content
-            final JsonElement relatesTo;
-
-            JsonObject contentAsJsonObject = event.getContentAsJsonObject();
-
-            if (contentAsJsonObject != null
-                    && contentAsJsonObject.has("m.relates_to")) {
-                // Get a copy of "m.relates_to" data...
-                relatesTo = contentAsJsonObject.get("m.relates_to");
-
-                // ... and remove "m.relates_to" data from the content before encrypting it
-                contentAsJsonObject.remove("m.relates_to");
-            } else {
-                relatesTo = null;
-            }
-
-            // Encrypt the content before sending
-            mDataHandler.getCrypto()
-                    .encryptEventContent(contentAsJsonObject, event.getType(), this, new ApiCallback<MXEncryptEventContentResult>() {
-                        @Override
-                        public void onSuccess(MXEncryptEventContentResult encryptEventContentResult) {
-                            // update the event content with the encrypted data
-                            event.type = encryptEventContentResult.mEventType;
-
-                            // Add the "m.relates_to" data to the encrypted event here
-                            JsonObject encryptedContent = encryptEventContentResult.mEventContent.getAsJsonObject();
-                            if (relatesTo != null) {
-                                encryptedContent.add("m.relates_to", relatesTo);
-                            }
-                            event.updateContent(encryptedContent);
-                            mDataHandler.decryptEvent(event, null);
-
-                            // sending in progress
-                            mDataHandler.updateEventState(event, Event.SentState.SENDING);
-                            mDataHandler.getDataRetriever().getRoomsRestClient().sendEventToRoom(event.eventId, getRoomId(),
-                                    encryptEventContentResult.mEventType, encryptEventContentResult.mEventContent.getAsJsonObject(), localCB);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception e) {
-                            event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-
-                            if (null != callback) {
-                                callback.onNetworkError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onMatrixError(MatrixError e) {
-                            // update the sent state if the message encryption failed because there are unknown devices.
-                            if ((e instanceof MXCryptoError) && TextUtils.equals(((MXCryptoError) e).errcode, MXCryptoError.UNKNOWN_DEVICES_CODE)) {
-                                event.mSentState = Event.SentState.FAILED_UNKNOWN_DEVICES;
-                            } else {
-                                event.mSentState = Event.SentState.UNDELIVERED;
-                            }
-                            event.unsentMatrixError = e;
-                            mDataHandler.onEventSentStateUpdated(event);
-
-                            if (null != callback) {
-                                callback.onMatrixError(e);
-                            }
-                        }
-
-                        @Override
-                        public void onUnexpectedError(Exception e) {
-                            event.unsentException = e;
-                            mDataHandler.updateEventState(event, Event.SentState.UNDELIVERED);
-
-                            if (null != callback) {
-                                callback.onUnexpectedError(e);
-                            }
-                        }
-                    });
-        } else {
-            mDataHandler.updateEventState(event, Event.SentState.SENDING);
-
-            if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
-                mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
-            } else {
-                mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
-            }
-        }
     }
 
     /**
@@ -2302,7 +2313,7 @@ public class Room {
      * @param callback the callback with the redacted event
      */
     public void redact(final String eventId, final ApiCallback<Event> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().redactEvent(getRoomId(), eventId, new SimpleApiCallback<Event>(callback) {
+        mDataHandler.retrieveRoomRestClient().redactEvent(getRoomId(), eventId, new SimpleApiCallback<Event>(callback) {
             @Override
             public void onSuccess(Event event) {
                 Event redactedEvent = (null != getStore()) ? getStore().getEvent(eventId, getRoomId()) : null;
@@ -2332,7 +2343,7 @@ public class Room {
      * @param callback the callback with the created event
      */
     public void report(String eventId, int score, String reason, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
+        mDataHandler.retrieveRoomRestClient().reportEvent(getRoomId(), eventId, score, reason, callback);
     }
 
     //================================================================================
@@ -2398,9 +2409,9 @@ public class Room {
         String identifier = identifiers.next();
 
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), identifier, localCallback);
+            mDataHandler.retrieveRoomRestClient().inviteByEmailToRoom(getRoomId(), identifier, localCallback);
         } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
+            mDataHandler.retrieveRoomRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
         }
     }
 
@@ -2413,7 +2424,7 @@ public class Room {
         mIsLeaving = true;
         mDataHandler.onRoomInternalUpdate(getRoomId());
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().leaveRoom(getRoomId(), new ApiCallback<Void>() {
+        mDataHandler.retrieveRoomRestClient().leaveRoom(getRoomId(), new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isAlive()) {
@@ -2490,7 +2501,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void forget(final ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().forgetRoom(getRoomId(), new SimpleApiCallback<Void>(callback) {
+        mDataHandler.retrieveRoomRestClient().forgetRoom(getRoomId(), new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (mDataHandler.isAlive()) {
@@ -2528,7 +2539,7 @@ public class Room {
         if (!TextUtils.isEmpty(reason)) {
             userIdAndReason.reason = reason;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().kickFromRoom(getRoomId(), userIdAndReason, callback);
+        mDataHandler.retrieveRoomRestClient().kickFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     /**
@@ -2544,7 +2555,7 @@ public class Room {
         if (!TextUtils.isEmpty(reason)) {
             userIdAndReason.reason = reason;
         }
-        mDataHandler.getDataRetriever().getRoomsRestClient().banFromRoom(getRoomId(), userIdAndReason, callback);
+        mDataHandler.retrieveRoomRestClient().banFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     /**
@@ -2558,7 +2569,7 @@ public class Room {
         userIdAndReason.userId = userId;
         // No reason for unbanning user
 
-        mDataHandler.getDataRetriever().getRoomsRestClient().unbanFromRoom(getRoomId(), userIdAndReason, callback);
+        mDataHandler.retrieveRoomRestClient().unbanFromRoom(getRoomId(), userIdAndReason, callback);
     }
 
     //================================================================================
@@ -2603,7 +2614,7 @@ public class Room {
                 addEventListener(mEncryptionListener);
             }
 
-            mDataHandler.getDataRetriever().getRoomsRestClient()
+            mDataHandler.retrieveRoomRestClient()
                     .sendStateEvent(getRoomId(), Event.EVENT_TYPE_MESSAGE_ENCRYPTION, null, params, new ApiCallback<Void>() {
                         @Override
                         public void onSuccess(Void info) {
